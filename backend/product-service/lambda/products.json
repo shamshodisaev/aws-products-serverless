@@ -2,26 +2,43 @@
   {
     "id": "1",
     "title": "Product 1",
-    "description": "Description of the product 1"
+    "description": "Description of the product 1",
+    "price": 24
   },
   {
     "id": "2",
     "title": "Product 2",
-    "description": "Description of the product 2"
+    "description": "Description of the product 2",
+    "price": 15
   },
   {
     "id": "3",
     "title": "Product 3",
-    "description": "Description of the product 3"
+    "description": "Description of the product 3",
+    "price": 23
   },
   {
     "id": "4",
     "title": "Product 4",
-    "description": "Description of the product 4"
+    "description": "Description of the product 4",
+    "price": 15
   },
   {
     "id": "5",
     "title": "Product 5",
-    "description": "Description of the product 5"
+    "description": "Description of the product 5",
+    "price": 23
+  },
+  {
+    "id": "6",
+    "title": "Product 6",
+    "description": "Description of the product 6",
+    "price": 15
+  },
+  {
+    "id": "7",
+    "title": "Product 7",
+    "description": "Description of the product 7",
+    "price": 18
   }
 ]
