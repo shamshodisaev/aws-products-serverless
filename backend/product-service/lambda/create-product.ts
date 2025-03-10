@@ -1,7 +1,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
-import { v4 } from "uuid";
 import { corsHeaders } from "./product-utils";
+import { randomUUID } from "crypto";
 
 const client = new DynamoDBClient({ region: "us-east-1" });
 const dynamo = DynamoDBDocumentClient.from(client);
@@ -9,7 +9,7 @@ const dynamo = DynamoDBDocumentClient.from(client);
 exports.handler = async (event: any) => {
   try {
     const { price, ...product } = JSON.parse(event.body);
-    const productId = v4();
+    const productId = randomUUID();
 
     if (!product.title || !price) {
       return {
