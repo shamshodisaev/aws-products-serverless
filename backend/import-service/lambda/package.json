@@ -1,0 +1,19 @@
+{
+  "name": "lambda",
+  "version": "1.0.0",
+  "main": "import-products-file.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "types": "./import-products-file.d.ts",
+  "description": "",
+  "dependencies": {
+    "@smithy/hash-node": "^4.0.1",
+    "@smithy/protocol-http": "^5.0.1",
+    "@smithy/url-parser": "^4.0.1",
+    "csv-parser": "^3.2.0"
+  }
+}

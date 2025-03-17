@@ -8,13 +8,15 @@ const dynamo = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event: any) => {
   try {
-    const { price, ...product } = JSON.parse(event.body);
+    const { price, ...product } =
+      typeof event.body === "string" ? JSON.parse(event.body) : event.body;
+
     const productId = randomUUID();
 
     if (!product.title || !price) {
       return {
         statusCode: 400,
-        Headers: corsHeaders,
+        headers: corsHeaders,
         body: JSON.stringify({ error: "Bad request!" }),
       };
     }
