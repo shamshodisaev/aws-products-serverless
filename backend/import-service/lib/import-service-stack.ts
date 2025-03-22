@@ -13,7 +13,12 @@ export class ImportServiceStack extends cdk.Stack {
     super(scope, id, props);
 
     const s3Policy = new iam.PolicyStatement({
-      actions: ["s3:PutObject", "s3:PutObjectAcl", "s3:GetObject"],
+      actions: [
+        "s3:PutObject",
+        "s3:PutObjectAcl",
+        "s3:GetObject",
+        "s3:ListBucket",
+      ],
       resources: [`arn:aws:s3:::${BUCKET}/*`, `arn:aws:s3:::${BUCKET}`],
     });
 

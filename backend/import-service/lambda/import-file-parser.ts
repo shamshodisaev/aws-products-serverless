@@ -1,6 +1,9 @@
-import { HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { createReadStream } from "fs";
+import * as csv from "csv-parser";
+import { Stream } from "stream";
 
-const s3 = new S3Client({ region: process.env.AWS_REGION });
+const s3 = new S3Client({ region: "us-east-1" });
 
 exports.handler = async (event: any) => {
   const bucket = event.Records[0].s3.bucket.name;
@@ -13,17 +16,27 @@ exports.handler = async (event: any) => {
   };
 
   try {
-    const { ContentType, ...file } = await s3.send(
-      new HeadObjectCommand(params)
-    );
+    const getObjectCommand = new GetObjectCommand(params);
 
-    console.log("CONTENT TYPE:", ContentType);
-    console.log("file:", file);
-    return ContentType;
+    const data = await s3.send(getObjectCommand);
+    const readStream = data.Body as Stream;
+
+    const results: unknown[] = [];
+
+    readStream
+      .pipe(csv())
+      .on("data", (data: unknown) => {
+        results.push(data);
+      })
+      .on("end", () => {
+        console.log(results, "results");
+      })
+      .on("error", (err: any) => {
+        throw new Error(err);
+      });
   } catch (err) {
-    console.log(err);
     const message = `Error getting object ${key} from bucket ${bucket}. Make sure they exist and your bucket is in the same region as this function.`;
-    console.log(message);
+    console.log(err, message);
     throw new Error(message);
   }
 };

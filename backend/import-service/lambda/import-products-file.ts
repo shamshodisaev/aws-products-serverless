@@ -5,6 +5,7 @@ import { parseUrl } from "@smithy/url-parser";
 import { formatUrl } from "@aws-sdk/util-format-url";
 import { Hash } from "@smithy/hash-node";
 import { defaultProvider } from "@aws-sdk/credential-provider-node";
+import { corsHeaders } from "./product-utils";
 
 const BUCKET = "node-aws-shop-files";
 const REGION = "us-east-1";
@@ -22,9 +23,14 @@ exports.handler = async (event: any) => {
         bucket: BUCKET,
         key,
       }),
+      headers: corsHeaders,
     };
   } catch (error) {
-    return JSON.stringify(error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify(error),
+      headers: corsHeaders,
+    };
   }
 };
 
