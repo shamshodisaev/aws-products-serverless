@@ -25,6 +25,7 @@
     "@aws-sdk/s3-request-presigner": "^3.758.0",
     "@aws-sdk/util-format-url": "^3.734.0",
     "aws-cdk-lib": "2.181.1",
-    "constructs": "^10.0.0"
+    "constructs": "^10.0.0",
+    "dotenv": "^16.4.7"
   }
 }

@@ -1,38 +1,24 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
-import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as s3n from "aws-cdk-lib/aws-s3-notifications";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import * as dotenv from "dotenv";
+import { getLambdaRole } from "./helpers";
 
 const BUCKET = "node-aws-shop-files";
+
+dotenv.config();
+
+const region = "us-east-1";
+const { ACCOUNT_ID } = process.env;
 
 export class ImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const s3Policy = new iam.PolicyStatement({
-      actions: [
-        "s3:PutObject",
-        "s3:PutObjectAcl",
-        "s3:GetObject",
-        "s3:ListBucket",
-      ],
-      resources: [`arn:aws:s3:::${BUCKET}/*`, `arn:aws:s3:::${BUCKET}`],
-    });
-
-    const lambdaRole = new iam.Role(this, "LambdaS3Role", {
-      assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
-    });
-
-    lambdaRole.addManagedPolicy(
-      iam.ManagedPolicy.fromAwsManagedPolicyName(
-        "service-role/AWSLambdaBasicExecutionRole"
-      )
-    );
-
-    lambdaRole.addToPolicy(s3Policy);
+    const lambdaRole = getLambdaRole({ scope: this, bucketName: BUCKET });
 
     const importProductFile = new lambda.Function(this, "ImportProductsFile", {
       runtime: lambda.Runtime.NODEJS_20_X,
@@ -46,6 +32,10 @@ export class ImportServiceStack extends cdk.Stack {
       code: lambda.Code.fromAsset("lambda"),
       handler: "import-file-parser.handler",
       role: lambdaRole,
+      environment: {
+        REGION: region,
+        ACCOUNT_ID: ACCOUNT_ID!,
+      },
     });
 
     const shopBucket = s3.Bucket.fromBucketName(this, "AwsShopBucket", BUCKET);

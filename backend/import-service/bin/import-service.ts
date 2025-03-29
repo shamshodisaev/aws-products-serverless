@@ -2,9 +2,11 @@
 import * as cdk from "aws-cdk-lib";
 import { ImportServiceStack } from "../lib/import-service-stack";
 
+const { ACCOUNT_ID } = process.env;
+
 const app = new cdk.App();
 new ImportServiceStack(app, "ImportServiceStack", {
-  env: { account: "311141532338", region: "us-east-1" },
+  env: { account: ACCOUNT_ID, region: "us-east-1" },
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,
    * but a single synthesized template can be deployed anywhere. */
