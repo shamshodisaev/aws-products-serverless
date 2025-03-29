@@ -2,54 +2,22 @@ import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
-import * as iam from "aws-cdk-lib/aws-iam";
-
-const environment = {
-  PRODUCTS_TABLE: "products",
-  PRODUCT_STOCKS_TABLE: "product-stocks",
-};
+import * as sqs from "aws-cdk-lib/aws-sqs";
+import { SqsToLambda } from "@aws-solutions-constructs/aws-sqs-lambda";
+import { environment, getLambdaDynamoRole, getLambdaSqsRole } from "./helpers";
 
 export class ProductServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const dynamoDbPolicy = new iam.PolicyStatement({
-      actions: [
-        "dynamodb:GetItem",
-        "dynamodb:PutItem",
-        "dynamodb:Scan",
-        "dynamodb:Query",
-        "dynamodb:UpdateItem",
-        "dynamodb:DeleteItem",
-      ],
-      resources: [
-        `arn:aws:dynamodb:us-east-1:311141532338:table/${environment.PRODUCTS_TABLE}`,
-        `arn:aws:dynamodb:us-east-1:311141532338:table/${environment.PRODUCT_STOCKS_TABLE}`,
-      ],
-    });
-
-    const lambdaRole = new iam.Role(this, "LambdaDynamoDBRole", {
-      assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
-    });
-
-    lambdaRole.addManagedPolicy(
-      iam.ManagedPolicy.fromAwsManagedPolicyName(
-        "service-role/AWSLambdaBasicExecutionRole"
-      )
-    );
-    lambdaRole.addManagedPolicy(
-      iam.ManagedPolicy.fromAwsManagedPolicyName(
-        "service-role/AWSLambdaVPCAccessExecutionRole"
-      )
-    );
-    lambdaRole.addToPolicy(dynamoDbPolicy);
+    const lambdaDynamoRole = getLambdaDynamoRole(this);
 
     const getProductsList = new lambda.Function(this, "ProductsList", {
       runtime: lambda.Runtime.NODEJS_20_X,
       code: lambda.Code.fromAsset("lambda"),
       handler: "products.handler",
       environment,
-      role: lambdaRole,
+      role: lambdaDynamoRole,
     });
 
     const createProduct = new lambda.Function(this, "CreateProduct", {
@@ -57,7 +25,7 @@ export class ProductServiceStack extends cdk.Stack {
       code: lambda.Code.fromAsset("lambda"),
       handler: "create-product.handler",
       environment,
-      role: lambdaRole,
+      role: lambdaDynamoRole,
     });
 
     const getProductById = new lambda.Function(this, "Product", {
@@ -65,7 +33,7 @@ export class ProductServiceStack extends cdk.Stack {
       code: lambda.Code.fromAsset("lambda"),
       handler: "product.handler",
       environment,
-      role: lambdaRole,
+      role: lambdaDynamoRole,
     });
 
     const productApi = new apigateway.RestApi(this, "Products API", {
@@ -84,5 +52,33 @@ export class ProductServiceStack extends cdk.Stack {
     productsResource.addMethod("GET", productsListLambda);
     productsResource.addMethod("POST", createProductLambda);
     productResource.addMethod("GET", productByIdLambda);
+
+    // sqs
+    const queue = new sqs.Queue(this, "catalogItemsQueue", {
+      fifo: false,
+      visibilityTimeout: cdk.Duration.seconds(30),
+    });
+
+    const lambdaSqsRole = getLambdaSqsRole(this);
+
+    const catalogBatchProcess = new lambda.Function(
+      this,
+      "catalogBatchProcess",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        code: lambda.Code.fromAsset("lambda"),
+        handler: "catalog-batch-process.handler",
+        role: lambdaSqsRole,
+      }
+    );
+
+    new SqsToLambda(this, "catalogSqsToLambda", {
+      existingLambdaObj: catalogBatchProcess,
+      existingQueueObj: queue,
+      sqsEventSourceProps: {
+        batchSize: 5,
+        enabled: true,
+      },
+    });
   }
 }
