@@ -4,11 +4,17 @@ import { Stream } from "stream";
 import { SQS, config } from "aws-sdk";
 
 const { REGION, ACCOUNT_ID } = process.env;
-const SQS_QUEUE_URL = `https://sqs.${REGION}.amazonaws.com/${ACCOUNT_ID}/ProductServiceStack-catalogItemsQueue79451959-DsvlbOxmB3T6`;
+const SQS_QUEUE_URL = `https://sqs.${REGION}.amazonaws.com/${ACCOUNT_ID}/catalog-items-queue`;
 
 // TODO: define root region variable
 const s3 = new S3Client({ region: REGION });
-const sqs = new SQS({ apiVersion: "2012-11-05" });
+const sqs = new SQS({
+  region: REGION,
+  httpOptions: {
+    timeout: 5000,
+  },
+});
+
 config.update({ region: REGION });
 
 exports.handler = async (event: any) => {
@@ -25,17 +31,16 @@ exports.handler = async (event: any) => {
     readStream
       .pipe(csv())
       .on("data", (data: unknown) => results.push(data))
-      .on("end", () => {
+      .on("end", async () => {
         console.log(results, "results");
-        const sqsParams = getSqsParams(JSON.stringify(results));
 
-        sqs.sendMessage(sqsParams, function (err, data) {
-          if (err) {
-            console.log("Error", err);
-          } else {
-            console.log("Success", data.MessageId);
-          }
-        });
+        try {
+          const sqsParams = getSqsParams(JSON.stringify(results));
+          const res = await sqs.sendMessage(sqsParams).promise();
+          console.log(res, 111);
+        } catch (error) {
+          console.log(`Error in sending message: ${error}`);
+        }
       })
       .on("error", (err: any) => {
         throw new Error(err);

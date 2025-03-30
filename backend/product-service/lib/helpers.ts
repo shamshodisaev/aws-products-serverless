@@ -30,7 +30,14 @@ const sqsPolicy = new iam.PolicyStatement({
 export const getLambdaSqsRole = function (scope: Construct) {
   const lambdaSqsRole = new iam.Role(scope, "LambdaDynamoSqsRole", {
     assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
+    roleName: "product-service-sqs-lambda",
   });
+
+  lambdaSqsRole.addManagedPolicy(
+    iam.ManagedPolicy.fromAwsManagedPolicyName(
+      "service-role/AWSLambdaBasicExecutionRole"
+    )
+  );
 
   lambdaSqsRole.addToPolicy(sqsPolicy);
 
@@ -42,6 +49,7 @@ export const getLambdaSqsRole = function (scope: Construct) {
 export const getLambdaDynamoRole = function (scope: Construct) {
   const lambdaRole = new iam.Role(scope, "LambdaDynamoDBRole", {
     assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
+    roleName: "product-service-dynamo-lambda",
   });
 
   lambdaRole.addManagedPolicy(

@@ -3,8 +3,11 @@ import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as sqs from "aws-cdk-lib/aws-sqs";
+import * as iam from "aws-cdk-lib/aws-iam";
 import { SqsToLambda } from "@aws-solutions-constructs/aws-sqs-lambda";
 import { environment, getLambdaDynamoRole, getLambdaSqsRole } from "./helpers";
+
+const CatalogItemsQueueARN = "CatalogItemsQueueArn";
 
 export class ProductServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -55,15 +58,23 @@ export class ProductServiceStack extends cdk.Stack {
 
     // sqs
     const queue = new sqs.Queue(this, "catalogItemsQueue", {
+      queueName: "catalog-items-queue",
       fifo: false,
       visibilityTimeout: cdk.Duration.seconds(30),
+    });
+
+    // TODO: Fix sqs access for import-file-parser lambda
+    new cdk.CfnOutput(this, "catalogItemsQueueArn", {
+      value: queue.queueArn,
+      exportName: CatalogItemsQueueARN,
+      description: "The ARN of the catalog items SQS queue",
     });
 
     const lambdaSqsRole = getLambdaSqsRole(this);
 
     const catalogBatchProcess = new lambda.Function(
       this,
-      "catalogBatchProcess",
+      "catalogSQSBatchProcess",
       {
         runtime: lambda.Runtime.NODEJS_20_X,
         code: lambda.Code.fromAsset("lambda"),
@@ -72,7 +83,7 @@ export class ProductServiceStack extends cdk.Stack {
       }
     );
 
-    new SqsToLambda(this, "catalogSqsToLambda", {
+    new SqsToLambda(this, "catalogBatchSQSToLambda", {
       existingLambdaObj: catalogBatchProcess,
       existingQueueObj: queue,
       sqsEventSourceProps: {

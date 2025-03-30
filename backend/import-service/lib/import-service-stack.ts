@@ -13,12 +13,19 @@ dotenv.config();
 
 const region = "us-east-1";
 const { ACCOUNT_ID } = process.env;
+const CatalogItemsQueueARN = "CatalogItemsQueueArn";
 
 export class ImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const lambdaRole = getLambdaRole({ scope: this, bucketName: BUCKET });
+    const queueArn = cdk.Fn.importValue(CatalogItemsQueueARN);
+    const lambdaRole = getLambdaRole({
+      scope: this,
+      bucketName: BUCKET,
+      accountId: ACCOUNT_ID!,
+      queueArn,
+    });
 
     const importProductFile = new lambda.Function(this, "ImportProductsFile", {
       runtime: lambda.Runtime.NODEJS_20_X,
