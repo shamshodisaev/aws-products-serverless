@@ -1,10 +1,9 @@
-import type { Construct } from "constructs";
 import * as iam from "aws-cdk-lib/aws-iam";
+import { SNS, AWSError } from "aws-sdk";
+import { PromiseResult } from "aws-sdk/lib/request";
+import type { Construct } from "constructs";
 
-export const environment = {
-  PRODUCTS_TABLE: "products",
-  PRODUCT_STOCKS_TABLE: "product-stocks",
-};
+const { PRODUCTS_TABLE, PRODUCT_STOCKS_TABLE, REGION } = process.env;
 
 const dynamoDbPolicy = new iam.PolicyStatement({
   actions: [
@@ -16,8 +15,8 @@ const dynamoDbPolicy = new iam.PolicyStatement({
     "dynamodb:DeleteItem",
   ],
   resources: [
-    `arn:aws:dynamodb:us-east-1:311141532338:table/${environment.PRODUCTS_TABLE}`,
-    `arn:aws:dynamodb:us-east-1:311141532338:table/${environment.PRODUCT_STOCKS_TABLE}`,
+    `arn:aws:dynamodb:us-east-1:311141532338:table/${PRODUCTS_TABLE}`,
+    `arn:aws:dynamodb:us-east-1:311141532338:table/${PRODUCT_STOCKS_TABLE}`,
   ],
 });
 
@@ -61,4 +60,32 @@ export const getLambdaDynamoRole = function (scope: Construct) {
   lambdaRole.addToPolicy(dynamoDbPolicy);
 
   return lambdaRole;
+};
+
+export const createTopic = ({
+  topicName,
+}: {
+  topicName: string;
+}): Promise<PromiseResult<SNS.CreateTopicResponse, AWSError>> => {
+  return new SNS({ region: REGION })
+    .createTopic({
+      Name: topicName,
+    })
+    .promise();
+};
+
+export const subscribeEmailTopic = ({
+  topicArn,
+  email,
+}: {
+  topicArn: string;
+  email: string;
+}): Promise<PromiseResult<SNS.SubscribeResponse, AWSError>> => {
+  const params = {
+    Protocol: "EMAIL",
+    TopicArn: topicArn,
+    Endpoint: email,
+  };
+
+  return new SNS().subscribe(params).promise();
 };

@@ -1,13 +1,32 @@
+import * as dotenv from "dotenv";
+dotenv.config();
+
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as sqs from "aws-cdk-lib/aws-sqs";
-import * as iam from "aws-cdk-lib/aws-iam";
 import { SqsToLambda } from "@aws-solutions-constructs/aws-sqs-lambda";
-import { environment, getLambdaDynamoRole, getLambdaSqsRole } from "./helpers";
+import {
+  createTopic,
+  getLambdaDynamoRole,
+  getLambdaSqsRole,
+  subscribeEmailTopic,
+} from "./helpers";
+import { config } from "aws-sdk";
 
+const { PRODUCTS_TABLE, PRODUCT_STOCKS_TABLE, REGION, ACCOUNT_ID, EMAIL } =
+  process.env;
+config.update({ region: REGION });
+
+export const environment = {
+  PRODUCTS_TABLE: PRODUCTS_TABLE!,
+  PRODUCT_STOCKS_TABLE: PRODUCT_STOCKS_TABLE!,
+  REGION: REGION!,
+  ACCOUNT_ID: ACCOUNT_ID!,
+};
 const CatalogItemsQueueARN = "CatalogItemsQueueArn";
+const CreateProductsTopicName = "CreateProductsTopic";
 
 export class ProductServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -80,6 +99,7 @@ export class ProductServiceStack extends cdk.Stack {
         code: lambda.Code.fromAsset("lambda"),
         handler: "catalog-batch-process.handler",
         role: lambdaSqsRole,
+        environment,
       }
     );
 
@@ -90,6 +110,14 @@ export class ProductServiceStack extends cdk.Stack {
         batchSize: 5,
         enabled: true,
       },
+    });
+
+    createTopic({ topicName: CreateProductsTopicName }).then(({ TopicArn }) => {
+      if (TopicArn) {
+        subscribeEmailTopic({ email: EMAIL!, topicArn: TopicArn });
+      } else {
+        throw Error("Unexpected topic arn");
+      }
     });
   }
 }
