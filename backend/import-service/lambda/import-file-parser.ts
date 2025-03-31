@@ -28,23 +28,26 @@ exports.handler = async (event: any) => {
 
     const results: unknown[] = [];
 
-    readStream
-      .pipe(csv())
-      .on("data", (data: unknown) => results.push(data))
-      .on("end", async () => {
-        console.log(results, "results");
+    await new Promise((resolve, reject) => {
+      readStream
+        .pipe(csv())
+        .on("data", (data: unknown) => results.push(data))
+        .on("end", async () => {
+          console.log(results, "results");
 
-        try {
-          const sqsParams = getSqsParams(JSON.stringify(results));
-          const res = await sqs.sendMessage(sqsParams).promise();
-          console.log(res, 111);
-        } catch (error) {
-          console.log(`Error in sending message: ${error}`);
-        }
-      })
-      .on("error", (err: any) => {
-        throw new Error(err);
-      });
+          try {
+            const sqsParams = getSqsParams(JSON.stringify(results));
+            const res = await sqs.sendMessage(sqsParams).promise();
+            console.log(res, 111);
+            resolve(res);
+          } catch (error) {
+            reject(`Error in sending message: ${error}`);
+          }
+        })
+        .on("error", (err: any) => {
+          reject(err);
+        });
+    });
   } catch (err) {
     const message = `Error getting object ${s3Params.Key} from bucket ${s3Params.Bucket}. Make sure they exist and your bucket is in the same region as this function.`;
     console.log(err, message);
