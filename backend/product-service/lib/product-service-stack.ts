@@ -100,6 +100,7 @@ export class ProductServiceStack extends cdk.Stack {
         handler: "catalog-batch-process.handler",
         role: lambdaSqsRole,
         environment,
+        functionName: "ProductService-CatalogBatchProcess",
       }
     );
 

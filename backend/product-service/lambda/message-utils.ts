@@ -1,4 +1,5 @@
-import { SQS } from "aws-sdk";
+import { AWSError, SNS, SQS } from "aws-sdk";
+import { PromiseResult } from "aws-sdk/lib/request";
 
 export const deleteSQSMessage = async ({
   accountId,
@@ -21,5 +22,27 @@ export const deleteSQSMessage = async ({
     await sqs.deleteMessage(deleteParams).promise();
   } catch (error) {
     console.log(`Error in deleting message: ${error}`);
+  }
+};
+
+export const sendSNSMessage = ({
+  message,
+  region,
+  topicArn,
+}: {
+  message: string;
+  region: string;
+  topicArn: string;
+}): undefined | Promise<PromiseResult<SNS.PublishResponse, AWSError>> => {
+  try {
+    const params = {
+      Message: message,
+      TopicArn: topicArn,
+    };
+
+    return new SNS({ region }).publish(params).promise();
+  } catch (error) {
+    console.log(`Error in sending message: ${error}`);
+    return;
   }
 };

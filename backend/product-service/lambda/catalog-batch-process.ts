@@ -3,18 +3,19 @@ import { DynamoDBDocument, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { corsHeaders } from "./product-utils";
 import { randomUUID } from "crypto";
 import { ProductStock } from "./types";
-import { deleteSQSMessage } from "./message-utils";
+import { deleteSQSMessage, sendSNSMessage } from "./message-utils";
 
 const { PRODUCTS_TABLE, PRODUCT_STOCKS_TABLE, REGION, ACCOUNT_ID } =
   process.env;
 
 const dynamoClient = new DynamoDBClient({ region: REGION });
 const dynamo = DynamoDBDocument.from(dynamoClient);
+const CreateProductsTopicArn = `arn:aws:sns:${REGION}:${ACCOUNT_ID}:CreateProductsTopic`;
 
 exports.handler = async (event: any) => {
   try {
     let { body: products, receiptHandle } = event.Records[0];
-    products = JSON.parse(products);
+    products = JSON.parse(products) as EventProduct[];
 
     const areValidProducts = products.every(
       ({ Name, Description, Price, Count }: any) =>
@@ -78,6 +79,14 @@ exports.handler = async (event: any) => {
       region: REGION!,
     });
 
+    const productNames = products.map((product: EventProduct) => product.Name);
+
+    await sendSNSMessage({
+      message: JSON.stringify(productNames),
+      region: REGION!,
+      topicArn: CreateProductsTopicArn,
+    });
+
     console.log(`Products have been added!`);
     return {
       statusCode: 200,
@@ -92,4 +101,11 @@ exports.handler = async (event: any) => {
       body: JSON.stringify(error),
     };
   }
+};
+
+type EventProduct = {
+  Name: string;
+  Description: string;
+  Price: string | number;
+  Count: string | number;
 };
