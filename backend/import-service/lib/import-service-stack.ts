@@ -57,6 +57,18 @@ export class ImportServiceStack extends cdk.Stack {
       }
     );
 
+    const lambdaAuthorizer = new apigateway.TokenAuthorizer(
+      this,
+      "LambdaAuthorizer",
+      {
+        handler: lambda.Function.fromFunctionArn(
+          this,
+          "LambdAuthorizer",
+          `arn:aws:lambda:us-east-1:${ACCOUNT_ID}:function:basic-authorizer`
+        ),
+      }
+    );
+
     const importsApi = new apigateway.RestApi(this, "Imports API", {
       restApiName: "Import Products API",
     });
@@ -67,6 +79,8 @@ export class ImportServiceStack extends cdk.Stack {
       importProductFile
     );
 
-    importResource.addMethod("POST", importProductsFileLambda);
+    importResource.addMethod("POST", importProductsFileLambda, {
+      authorizer: lambdaAuthorizer,
+    });
   }
 }

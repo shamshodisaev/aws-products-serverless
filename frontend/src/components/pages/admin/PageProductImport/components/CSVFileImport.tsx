@@ -8,6 +8,8 @@ type CSVFileImportProps = {
   title: string;
 };
 
+const encodedToken = btoa(`test_login=TEST_PASSWORD`);
+
 export default function CSVFileImport({ url, title }: CSVFileImportProps) {
   const [file, setFile] = React.useState<File>();
 
@@ -32,6 +34,9 @@ export default function CSVFileImport({ url, title }: CSVFileImportProps) {
       url,
       params: {
         name: encodeURIComponent(file?.name!),
+      },
+      headers: {
+        Authorization: `Basic ${encodedToken}`,
       },
     });
     console.log("File to upload: ", file?.name!);
